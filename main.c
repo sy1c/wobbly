@@ -9,6 +9,8 @@
 #define BAUD 9600
 #define UBRR (((F_CPU / (16UL * BAUD))) - 1)    //equations for calculating baud rate register setting
 
+#define BATT PA0
+#define STATE_LED PB0
 #define SIG_LED PB1
 #define FUN_BTN PB2
 #define BUZZER PD6
@@ -29,20 +31,24 @@ LOCKBITS = 0xFF; // {LB=NO_LOCK, BLB0=NO_LOCK, BLB1=NO_LOCK}
 
 void timer0_init(void);
 void usart_init(void);
+void adc_init(void);
 void usart_transmit(uint8_t data);
 uint8_t usart_receive();
+void state(uint8_t batt);
 
 int main(void) {
-    
-    DDRB = (1 << DDB1);
-    
     timer0_init();
     usart_init();
+    adc_init();
     
     sei();
-
+    
+    DDRA &= ~(1 << BATT);
+    DDRB |= (1 << STATE_LED) | (1 << SIG_LED);
+    DDRB &= ~(1 << FUN_BTN);
+    
     while (1) {
-
+        state(ADCH);
     }
     
     return(0);
@@ -65,6 +71,12 @@ void usart_init(void) {
     UCSR0C = (3 << UCSZ0);
 }
 
+void adc_init(void) {
+    ADCSRA = (1 << ADEN) | (1 << ADATE) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
+    ADMUX = (1 << REFS0) | (1 << ADLAR);
+    ADCSRA |= (1 << ADSC);
+}
+
 void usart_transmit(uint8_t data) {
     //wait for empty transmit buffer
     while (!( UCSR0A & (1<<UDRE)));
@@ -77,9 +89,8 @@ uint8_t usart_receive(void) {
     return UDR0;
 }
 
-ISR(TIMER0_OVF_vect) 
-{    
-    usart_transmit((PINB & (1 << PB1)));
+ISR(TIMER0_OVF_vect) {    
+    usart_transmit(ADCH);
 }
 
 ISR(USART0_RX_vect) {
@@ -88,5 +99,14 @@ ISR(USART0_RX_vect) {
     
     if (command == 0x00) {
         PORTB ^= (1 << SIG_LED);
+    }
+}
+
+void state(uint8_t batt) {
+    if (batt > 198) {
+        PORTB |= (1 << STATE_LED);
+    }
+    else {
+        PORTB &= ~(1 << STATE_LED);
     }
 }
