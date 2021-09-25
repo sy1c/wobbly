@@ -11,5 +11,5 @@
 #include <avr/io.h>
 
 void usart_init(void);
-void usart_transmit(int16_t data);
+void usart_transmit(uint8_t data);
 uint8_t usart_receive(void);

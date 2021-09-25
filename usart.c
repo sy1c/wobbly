@@ -12,7 +12,7 @@ void usart_init(void) {
     UCSR0C = (3 << UCSZ0);
 }
 
-void usart_transmit(int16_t data) {
+void usart_transmit(uint8_t data) {
     //wait for empty transmit buffer
     while (!( UCSR0A & (1<<UDRE)));
     //put data into buffer, sends the data
