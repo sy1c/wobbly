@@ -24,6 +24,7 @@
 #include "timer.h"
 #include "usart.h"
 #include "motors.h"
+#include "encoders.h"
 
 /*
 FUSES = {
@@ -34,6 +35,8 @@ FUSES = {
 
 LOCKBITS = 0xFF; // {LB=NO_LOCK, BLB0=NO_LOCK, BLB1=NO_LOCK}
 */
+
+uint16_t left_speed, right_speed;
 
 void state(uint8_t batt);
 
@@ -49,6 +52,7 @@ int main(void) {
     twi_init();
     adc_init();
     motors_init();
+    encoders_init();
     
     imu_init();
     
@@ -68,9 +72,11 @@ int main(void) {
             PORTC &= ~(1 << MOTR_R);
         }
         else {
-            motors_set_speed(128,255);
+            motors_set_speed(128, 128);
             PORTC |= (1 << MOTL_F) | (1 << MOTR_F);
         }
+        
+        usart_transmit(right_speed);
     }
     
     return(0);
@@ -86,7 +92,6 @@ void state(uint8_t batt) {
     }
 }
 
-
 //ISR(TIMER0_OVF_vect) {    
 //    
 //}
@@ -94,6 +99,8 @@ void state(uint8_t batt) {
 ISR(TIMER3_COMPA_vect) {
     imu_read();
     imu_integrate_gyro();
+    
+    right_speed = encoders_right_counts();
 }
 
 ISR(USART0_RX_vect) {
